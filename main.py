@@ -1,18 +1,23 @@
-# This is a sample Python script.
+# main.py
+import sys
+from PyQt5.QtWidgets import QApplication
+import input
 
-# Press Umschalt+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-import qgis.core
-from qgis.gui import QgsMapCanvas
+def main():
+    if not QApplication.instance():
+        app = QApplication(sys.argv)
 
+    window = input.DateSelector()
+    window.show()
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Strg+F8 to toggle the breakpoint.
+    if not QApplication.instance().startingUp():
+        sys.exit(app.exec_())
 
+# outside QGIS
+if __name__ == "__main__":
+    main()
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+# inside QGIS
+if __name__ == '__console__':
+    date_selector = input.DateSelector()
+    date_selector.show()
