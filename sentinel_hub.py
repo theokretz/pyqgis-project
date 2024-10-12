@@ -1,4 +1,5 @@
 # sentinel_hub.py
+# Most of this code is from: https://sentinelhub-py.readthedocs.io/en/latest/examples/process_request.html
 from qgis._core import QgsProject, QgsApplication, QgsMessageLog, Qgis
 import matplotlib.pyplot as plt
 import numpy as np
