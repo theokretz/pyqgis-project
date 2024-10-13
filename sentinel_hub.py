@@ -137,9 +137,10 @@ def true_color_without_clouds(start_date, end_date, download_checked, selected_f
         }
 
         function evaluatePixel(sample) {
-            return [sample.B04, sample.B03, sample.B02];
+            return [2.5 * sample.B04, 2.5 * sample.B03, 2.5 * sample.B02];
         }
     """
+
     request_true_color = SentinelHubRequest(
         data_folder="test_dir",
         evalscript=evalscript_true_color,
@@ -155,6 +156,7 @@ def true_color_without_clouds(start_date, end_date, download_checked, selected_f
         size=vienna_size,
         config=config,
     )
+
     # check for download
     if download_checked:
         image_download = request_true_color.get_data(save_data=True)
@@ -165,7 +167,7 @@ def true_color_without_clouds(start_date, end_date, download_checked, selected_f
     else:
         image = request_true_color.get_data()[0]
 
-    plot_image(image, 2, [0,1])
+    plot_image(image, 1, [0,1])
 
 
 
