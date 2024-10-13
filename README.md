@@ -4,7 +4,8 @@ This PyQGIS project was developed as part of my bachelor's thesis.
 
 ## Current Features
 
-- Returns a True Color Image of Vienna for a specific time frame sing Sentinel Hub.
+- Returns a True Color Image of Vienna for a specific time frame using Sentinel Hub.
+- Downloads the True Color Image in preferred file format.
 
 ## Installation
 

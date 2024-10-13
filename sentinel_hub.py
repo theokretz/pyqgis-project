@@ -1,8 +1,9 @@
 # sentinel_hub.py
 # Most of this code is from: https://sentinelhub-py.readthedocs.io/en/latest/examples/process_request.html
-from qgis._core import QgsProject, QgsApplication, QgsMessageLog, Qgis
 import matplotlib.pyplot as plt
 import numpy as np
+from qgis._core import QgsProject, QgsMessageLog, Qgis
+from qgis.core import QgsRasterLayer
 from sentinelhub import (
     SHConfig,
     CRS,
@@ -13,22 +14,30 @@ from sentinelhub import (
     SentinelHubRequest,
     bbox_to_dimensions,
 )
-from qgis.core import QgsRasterLayer
 
 config = SHConfig()
 
 if not config.sh_client_id or not config.sh_client_secret:
     print("Warning! To use Process API, please provide the credentials (OAuth client ID and client secret).")
 
-vienna_coords_wgs84 = (16.22, 48.15, 16.47, 48.32)
+vienna_coords_wgs84 = (16.280155, 48.151886, 16.466296, 48.260341)
 resolution = 60
 vienna_bbox = BBox(bbox=vienna_coords_wgs84, crs=CRS.WGS84)
 vienna_size = bbox_to_dimensions(vienna_bbox, resolution=resolution)
 
-def plot_image(image, factor=1.0, clip_range=None):
+mime_type_mapping = {
+    "TIFF": MimeType.TIFF,
+    "PNG": MimeType.PNG,
+    "JPEG": MimeType.JPG
+}
+
+def plot_image(image, factor=1.0, clip_range=None, normalize=True):
+    if normalize:
+        image= (image - image.min()) / (image.max() - image.min())
+    image *= factor
     if clip_range:
         image = np.clip(image, clip_range[0], clip_range[1])
-    plt.imshow(image * factor)
+    plt.imshow(image)
     plt.axis('off')
     plt.show()
 
@@ -65,13 +74,11 @@ def true_color_with_clouds(start_date, end_date):
         size=vienna_size,
         config=config,
     )
+
     true_color_imgs = request_true_color.get_data()
     image = true_color_imgs[0]
 
-    image_normalized = (image - image.min()) / (image.max() - image.min())
-    image_brightened = image_normalized * 1.5
-    image_brightened = np.clip(image_brightened, 0, 1)
-    plot_image(image_brightened, factor=1.0)
+    plot_image(image,2, [0,1])
 
 
 def true_color_with_cloud_mask(start_date, end_date):
@@ -93,6 +100,7 @@ def true_color_with_cloud_mask(start_date, end_date):
     """
 
     request_true_color = SentinelHubRequest(
+        data_folder="test_dir",
         evalscript=evalscript_clm,
         input_data=[
             SentinelHubRequest.input_data(
@@ -107,12 +115,13 @@ def true_color_with_cloud_mask(start_date, end_date):
     )
     data_with_cloud_mask_request = request_true_color.get_data(save_data=True)
     data_with_cloud_mask = data_with_cloud_mask_request[0]
-
-    image_cloud_mask_normalized =(data_with_cloud_mask - data_with_cloud_mask.min()) / (data_with_cloud_mask.max() - data_with_cloud_mask.min())
-    plot_image(image_cloud_mask_normalized)
+    plot_image(data_with_cloud_mask, 1, [0,1])
 
 
-def true_color_without_clouds(start_date, end_date):
+def true_color_without_clouds(start_date, end_date, download_checked, selected_file_type):
+    # get selected file type, default is TIFF
+    mime_type = mime_type_mapping.get(selected_file_type, MimeType.TIFF)
+
     evalscript_true_color = """
         //VERSION=3
 
@@ -141,17 +150,23 @@ def true_color_without_clouds(start_date, end_date):
                 mosaicking_order=MosaickingOrder.LEAST_CC,
             )
         ],
-        responses=[SentinelHubRequest.output_response("default", MimeType.PNG)],
+        responses=[SentinelHubRequest.output_response("default", mime_type)],
         bbox=vienna_bbox,
         size=vienna_size,
         config=config,
     )
+    # check for download
+    if download_checked:
+        image_download = request_true_color.get_data(save_data=True)
+        image = image_download[0]
+        if not image_download:
+            print("Image download failed!")
+            QgsMessageLog.logMessage("Image download failed!", level=Qgis.Critical)
+    else:
+        image = request_true_color.get_data()[0]
 
-    image = request_true_color.get_data(save_data=True)[0]
-    image_normalized = (image - image.min()) / (image.max() - image.min())
-    image_brightened = image_normalized * 1.5
-    image_brightened = np.clip(image_brightened, 0, 1)
-    plot_image(image_brightened)
+    plot_image(image, 2, [0,1])
+
 
 
 def import_into_qgis():
@@ -165,3 +180,4 @@ def import_into_qgis():
         print("File path:", image_path)
     else:
         QgsProject.instance().addMapLayer(raster_layer)
+
